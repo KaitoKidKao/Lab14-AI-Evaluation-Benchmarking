@@ -23,10 +23,25 @@ class RetrievalEvaluator:
                 return 1.0 / (i + 1)
         return 0.0
 
-    async def evaluate_batch(self, dataset: List[Dict]) -> Dict:
+    async def evaluate_batch(self, results: List[Dict]) -> Dict:
         """
-        Chạy eval cho toàn bộ bộ dữ liệu.
-        Dataset cần có trường 'expected_retrieval_ids' và Agent trả về 'retrieved_ids'.
+        Chạy eval cho toàn bộ bộ dữ liệu đã execute.
+        Results mỗi item cần có 'expected_retrieval_ids' và 'retrieved_ids'.
         """
-        # Placeholder logic
-        return {"avg_hit_rate": 0.85, "avg_mrr": 0.72}
+        if not results:
+            return {"avg_hit_rate": 0, "avg_mrr": 0}
+
+        total_hit_rate = 0
+        total_mrr = 0
+
+        for res in results:
+            expected = res.get("expected_retrieval_ids", [])
+            retrieved = res.get("retrieved_ids", [])
+            
+            total_hit_rate += self.calculate_hit_rate(expected, retrieved)
+            total_mrr += self.calculate_mrr(expected, retrieved)
+
+        return {
+            "avg_hit_rate": total_hit_rate / len(results),
+            "avg_mrr": total_mrr / len(results)
+        }

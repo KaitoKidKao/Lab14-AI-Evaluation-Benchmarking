@@ -1,44 +1,53 @@
 import asyncio
 import time
 from typing import List, Dict
-# Import other components...
 
 class BenchmarkRunner:
-    def __init__(self, agent, evaluator, judge):
+    def __init__(self, agent, evaluator, judge, concurrency: int = 5):
         self.agent = agent
         self.evaluator = evaluator
         self.judge = judge
+        self.semaphore = asyncio.Semaphore(concurrency)
+        self.cost_per_1k_tokens = 0.00015 # Giả lập giá gpt-4o-mini
 
     async def run_single_test(self, test_case: Dict) -> Dict:
-        start_time = time.perf_counter()
-        
-        # 1. Gọi Agent
-        response = await self.agent.query(test_case["question"])
-        latency = time.perf_counter() - start_time
-        
-        # 2. Chạy RAGAS metrics
-        ragas_scores = await self.evaluator.score(test_case, response)
-        
-        # 3. Chạy Multi-Judge
-        judge_result = await self.judge.evaluate_multi_judge(
-            test_case["question"], 
-            response["answer"], 
-            test_case["expected_answer"]
-        )
-        
-        return {
-            "test_case": test_case["question"],
-            "agent_response": response["answer"],
-            "latency": latency,
-            "ragas": ragas_scores,
-            "judge": judge_result,
-            "status": "fail" if judge_result["final_score"] < 3 else "pass"
-        }
+        async with self.semaphore:
+            start_time = time.perf_counter()
+            
+            # 1. Gọi Agent
+            response = await self.agent.query(test_case["question"])
+            latency = time.perf_counter() - start_time
+            
+            # 2. Chạy Retrieval Eval
+            # Agent trả về 'contexts' và 'metadata', chúng ta mô phỏng retrieved_ids
+            retrieved_ids = response.get("metadata", {}).get("sources", [])
+            
+            # 3. Chạy Multi-Judge
+            judge_result = await self.judge.evaluate_multi_judge(
+                test_case["question"], 
+                response["answer"], 
+                test_case["expected_answer"]
+            )
+            
+            # Tính toán chi phí (giả lập)
+            tokens = response.get("metadata", {}).get("tokens_used", 0)
+            cost = (tokens / 1000) * self.cost_per_1k_tokens
 
-    async def run_all(self, dataset: List[Dict], batch_size: int = 5):
+            return {
+                "question": test_case["question"],
+                "expected_retrieval_ids": test_case.get("expected_retrieval_ids", []),
+                "retrieved_ids": retrieved_ids,
+                "agent_response": response["answer"],
+                "latency": latency,
+                "tokens": tokens,
+                "cost": cost,
+                "judge": judge_result,
+                "status": "fail" if judge_result["final_score"] < 3 else "pass"
+            }
+
+    async def run_all(self, dataset: List[Dict]):
         """
-        TODO: Thực hiện chạy song song bằng asyncio.gather với giới hạn batch_size 
-        để không bị Rate Limit.
+        Thực hiện chạy song song bằng asyncio.gather với giới hạn semaphore.
         """
         tasks = [self.run_single_test(case) for case in dataset]
         results = await asyncio.gather(*tasks)

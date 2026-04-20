@@ -1,0 +1,32 @@
+# Hệ thống Ngân hàng Số SmartBank - Tài liệu Kỹ thuật
+
+## 1. Quy trình Đăng ký Tài khoản
+Khách hàng có thể đăng ký tài khoản qua ứng dụng di động hoặc trực tiếp tại quầy. Đối với đăng ký online, khách hàng cần chuẩn bị CCCD/Hộ chiếu còn hạn và thực hiện định danh eKYC. 
+- ID tài liệu: DOC_REG_001
+- Bước 1: Chụp ảnh CCCD mặt trước và mặt sau.
+- Bước 2: Quét khuôn mặt (Liveness Detection).
+- Bước 3: Xác nhận thông tin cá nhân và chữ ký số.
+
+## 2. Chính sách Bảo mật và Mật khẩu
+Mật khẩu phải có độ dài từ 8-20 ký tự, bao gồm ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt.
+- ID tài liệu: DOC_SEC_002
+- Tài khoản sẽ bị khóa tạm thời trong 30 phút nếu nhập sai quá 5 lần.
+- Khách hàng có thể reset mật khẩu qua email hoặc SMS OTP.
+
+## 3. Chuyển tiền và Hạn mức
+Hạn mức chuyển tiền mặc định là 50.000.000 VND/ngày. 
+- ID tài liệu: DOC_TRANS_003
+- Chuyển tiền nhanh Napas 24/7 áp dụng cho các giao dịch dưới 500.000.000 VND.
+- Phí giao dịch: Miễn phí hoàn toàn cho mọi giao dịch chuyển tiền nội bộ và liên ngân hàng.
+
+## 4. Quản lý Thẻ Tín dụng
+Thẻ tín dụng SmartBank Platinum có hạn mức từ 100.000.000 VND. 
+- ID tài liệu: DOC_CARD_004
+- Thời gian miễn lãi: Lên đến 55 ngày.
+- Điều kiện mở thẻ: Thu nhập từ 15.000.000 VND/tháng chuyển khoản qua ngân hàng.
+
+## 5. Xử lý Sự cố và Khiếu nại
+Khách hàng có thể liên hệ tổng đài 1900 1234 (hoạt động 24/7).
+- ID tài liệu: DOC_HELP_005
+- Thời gian xử lý khiếu nại giao dịch lỗi: 7-15 ngày làm việc.
+- Trường hợp mất thẻ, khách hàng phải khóa thẻ ngay lập tức trên app hoặc gọi tổng đài.

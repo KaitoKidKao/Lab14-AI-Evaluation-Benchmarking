@@ -2,7 +2,7 @@ import json
 import os
 
 def validate_lab():
-    print("🔍 Đang kiểm tra định dạng bài nộp...")
+    print("Checking submission format...")
     
     required_files = [
         "reports/summary.json",
@@ -10,37 +10,38 @@ def validate_lab():
         "analysis/failure_analysis.md"
     ]
     
-    # 1. Kiểm tra sự tồn tại của file
+    # 1. Check file existence
     for f in required_files:
         if os.path.exists(f):
-            print(f"✅ Tìm thấy: {f}")
+            print(f"Passed: Found {f}")
         else:
-            print(f"❌ Thiếu file: {f}")
+            print(f"Failed: Missing file {f}")
             return
 
-    # 2. Kiểm tra nội dung summary.json
+    # 2. Check summary.json content
     with open("reports/summary.json", "r") as f:
         data = json.load(f)
         
         metrics = data["metrics"]
         
-        print(f"\n--- Thống kê nhanh ---")
-        print(f"Tổng số cases: {data['metadata']['total']}")
-        print(f"Điểm trung bình: {metrics['avg_score']:.2f}")
+        print(f"\n--- Quick Stats ---")
+        total_key = "total_cases" if "total_cases" in data["metadata"] else "total"
+        print(f"Total cases: {data['metadata'][total_key]}")
+        print(f"Average Score: {metrics['avg_score']:.2f}")
         
         # EXPERT CHECKS
         has_retrieval = "hit_rate" in metrics
-        has_multi_judge = "agreement_rate" in metrics or "avg_score" in metrics # In expert version, avg_score comes from multi-judge
+        has_multi_judge = "agreement_rate" in metrics or "avg_score" in metrics
         
         if has_retrieval:
-            print(f"✅ Đã tìm thấy Retrieval Metrics (Hit Rate: {metrics['hit_rate']*100:.1f}%)")
+            print(f"Passed: Retrieval Metrics found (Hit Rate: {metrics['hit_rate']*100:.1f}%)")
         else:
-            print(f"⚠️ CẢNH BÁO: Thiếu Retrieval Metrics.")
+            print(f"Warning: Missing Retrieval Metrics.")
 
         if data["metadata"].get("version"):
-            print(f"✅ Đã tìm thấy thông tin phiên bản Agent (Regression Mode)")
+            print(f"Passed: Agent Version info found (Regression Mode)")
 
-    print("\n🚀 Bài lab đã sẵn sàng để chấm điểm!")
+    print("\nResult: Lab is ready for grading!")
 
 if __name__ == "__main__":
     validate_lab()
