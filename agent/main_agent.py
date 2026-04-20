@@ -1,30 +1,73 @@
 import asyncio
-import random
+import os
 from typing import List, Dict
+from openai import AsyncOpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class MainAgent:
     """
-    Đây là Agent mẫu sử dụng kiến trúc RAG đơn giản.
+    Agent thực hiện RAG bằng cách sử dụng OpenAI API và dữ liệu từ knowledge_base.txt.
     """
     def __init__(self):
-        self.name = "SupportAgent-v1"
-        self.doc_ids = ["DOC_REG_001", "DOC_SEC_002", "DOC_TRANS_003", "DOC_CARD_004", "DOC_HELP_005"]
+        self.name = "SmartBank-Expert-Agent"
+        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.kb_path = "data/knowledge_base.txt"
+        self._knowledge_base = self._load_kb()
+
+    def _load_kb(self) -> str:
+        try:
+            with open(self.kb_path, "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception:
+            return "Tài liệu ngân hàng không khả dụng."
 
     async def query(self, question: str) -> Dict:
         """
-        Mô phỏng quy trình RAG thực tế.
+        Thực hiện quy trình RAG:
+        1. Lấy context từ KB.
+        2. Gọi OpenAI để sinh câu trả lời.
+        3. Trả về câu trả lời kèm metadata.
         """
-        await asyncio.sleep(0.1) 
+        # Đơn giản hóa: Dùng toàn bộ KB làm context vì kích thước nhỏ
+        context = self._knowledge_base
         
-        # Mô phỏng Retrieval: Chọn ngẫu nhiên 1-2 ID tài liệu
-        retrieved = random.sample(self.doc_ids, k=random.randint(1, 2))
-        
-        return {
-            "answer": f"Dựa trên tài liệu hệ thống, tôi xin trả lời câu hỏi '{question}' như sau: [Thông tin phản hồi từ AI].",
-            "contexts": ["Nội dung giả lập được trích xuất từ văn bản..."],
-            "metadata": {
-                "model": "gpt-4o-mini",
-                "tokens_used": random.randint(100, 300),
-                "sources": retrieved
+        try:
+            response = await self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": f"Bạn là chuyên gia tư vấn SmartBank. Hãy trả lời câu hỏi dựa trên tài liệu sau:\n\n{context}"},
+                    {"role": "user", "content": question}
+                ],
+                temperature=0,
+                max_tokens=300
+            )
+            
+            answer = response.choices[0].message.content
+            tokens = response.usage.total_tokens
+            
+            # Trích xuất source IDs từ câu hỏi/context (giả lập logic retrieval)
+            # Trong thực tế sẽ dùng Vector Search để lấy ID cụ thể
+            retrieved = []
+            if "đăng ký" in question.lower(): retrieved.append("DOC_REG_001")
+            if "mật khẩu" in question.lower(): retrieved.append("DOC_SEC_002")
+            if "chuyển tiền" in question.lower(): retrieved.append("DOC_TRANS_003")
+            if "thẻ" in question.lower(): retrieved.append("DOC_CARD_004")
+            if "khiếu nại" in question.lower(): retrieved.append("DOC_HELP_005")
+
+            return {
+                "answer": answer,
+                "contexts": [context[:200] + "..."], # Chỉ trả về một đoạn context demo
+                "metadata": {
+                    "model": "gpt-4o-mini",
+                    "tokens_used": tokens,
+                    "sources": retrieved if retrieved else ["DOC_GENERAL"]
+                }
             }
-        }
+        except Exception as e:
+            return {
+                "answer": f"Lỗi gọi API: {str(e)}",
+                "contexts": [],
+                "metadata": {"model": "error", "tokens_used": 0, "sources": []}
+            }
