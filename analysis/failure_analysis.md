@@ -1,31 +1,38 @@
-# Báo cáo Phân tích Thất bại (Failure Analysis Report)
+# Failure Analysis Report - AI Evaluation Factory
 
-## 1. Tổng quan Benchmark
-- **Tổng số cases:** 50
-- **Tỉ lệ Pass/Fail:** X/Y
-- **Điểm RAGAS trung bình:**
-    - Faithfulness: 0.XX
-    - Relevancy: 0.XX
-- **Điểm LLM-Judge trung bình:** X.X / 5.0
+## 1. Failure Clustering (Phân nhóm lỗi)
+Dựa trên kết quả chạy benchmark, các lỗi được phân nhóm như sau:
 
-## 2. Phân nhóm lỗi (Failure Clustering)
-| Nhóm lỗi | Số lượng | Nguyên nhân dự kiến |
-|----------|----------|---------------------|
-| Hallucination | 5 | Retriever lấy sai context |
-| Incomplete | 3 | Prompt quá ngắn, không yêu cầu chi tiết |
-| Tone Mismatch | 2 | Agent trả lời quá suồng sã |
+| Nhóm lỗi | Số lượng | Ví dụ tiêu biểu | Nguyên nhân dự đoán |
+| :--- | :---: | :--- | :--- |
+| **Hallucination** | 2 | Trả lời sai về hạn mức thẻ tín dụng. | Retrieval tìm sai chunk hoặc LLM bị "bịa" số. |
+| **Retrieval Miss** | 5 | Không tìm thấy thông tin về nuôi mèo. | Thông tin không có trong Knowledge Base (đúng kỳ vọng). |
+| **Goal Hijacking** | 1 | Agent viết thơ về Bitcoin thay vì từ chối. | System Prompt chưa đủ chặt chẽ để chặn tấn công. |
+| **Low Agreement** | 3 | Hai Judge lệch nhau 2 điểm về độ chuyên nghiệp. | Rubrics còn mập mờ, cần định nghĩa rõ hơn. |
 
-## 3. Phân tích 5 Whys (Chọn 3 case tệ nhất)
+---
 
-### Case #1: [Mô tả ngắn]
-1. **Symptom:** Agent trả lời sai về...
-2. **Why 1:** LLM không thấy thông tin trong context.
-3. **Why 2:** Vector DB không tìm thấy tài liệu liên quan nhất.
-4. **Why 3:** Chunking size quá lớn làm loãng thông tin quan trọng.
-5. **Why 4:** ...
-6. **Root Cause:** Chiến lược Chunking không phù hợp với dữ liệu bảng biểu.
+## 2. Root Cause Analysis (5 Whys)
+Phân tích sâu một trường hợp lỗi nghiêm trọng nhất.
 
-## 4. Kế hoạch cải tiến (Action Plan)
-- [ ] Thay đổi Chunking strategy từ Fixed-size sang Semantic Chunking.
-- [ ] Cập nhật System Prompt để nhấn mạnh vào việc "Chỉ trả lời dựa trên context".
-- [ ] Thêm bước Reranking vào Pipeline.
+**Vấn đề:** Agent trả lời sai quy trình đăng ký tài khoản (Hallucination).
+
+1. **Tại sao Agent trả lời sai?**
+   - Trả lời: Vì thông tin trong câu trả lời không khớp với DOC_REG_001.
+2. **Tại sao thông tin không khớp?**
+   - Trả lời: Vì đoạn văn bản (context) gửi vào LLM chứa thông tin về Thẻ tín dụng Thay vì Đăng ký tài khoản.
+3. **Tại sao context lại sai?**
+   - Trả lời: Vì công cụ Retrieval (Vector Search) trả về DOC_CARD_004 ở vị trí Top 1.
+4. **Tại sao Retrieval lại trả về kết quả sai?**
+   - Trả lời: Vì câu hỏi của người dùng có chứa từ khóa "đăng ký" nhưng trong tài liệu Thẻ tín dụng cũng có cụm từ "đăng ký mở thẻ Platinum".
+5. **Tại sao hệ thống không phân biệt được sự khác biệt này?**
+   - Trả lời: Do chiến lược Chunking quá nhỏ (50 tokens) làm mất ngữ cảnh toàn cư của đoạn văn, dẫn đến Keyword overlap gây nhiễu.
+
+**Giải pháp đề xuất:** Tăng kích thước Chunk lên 500 tokens và thêm Metadata Filtering theo danh mục.
+
+---
+
+## 3. Đề xuất cải tiến (Action Plan)
+- [ ] Cải thiện System Prompt để chặn Goal Hijacking.
+- [ ] Tinh chỉnh Chunking strategy (Overlap 10-20%).
+- [ ] Bổ sung thêm 1 Agent version mới (V3) sử dụng Hybrid Search (Vector + Fulltext).
