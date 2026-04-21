@@ -6,8 +6,10 @@ from engine.runner import BenchmarkRunner
 from agent.main_agent import MainAgent
 from engine.retrieval_eval import RetrievalEvaluator
 from engine.llm_judge import LLMJudge
+from langfuse import observe
 
-async def run_benchmark_with_results(agent, agent_version: str):
+@observe()
+async def run_benchmark_with_results(agent, agent_version: str, **kwargs):
     print(f"Starting Benchmark for {agent_version}...")
     
     if not os.path.exists("data/golden_set.jsonl"):
@@ -15,7 +17,15 @@ async def run_benchmark_with_results(agent, agent_version: str):
         return None, None
 
     with open("data/golden_set.jsonl", "r", encoding="utf-8") as f:
-        dataset = [json.loads(line) for line in f]
+        dataset = []
+        for line in f:
+            clean_line = line.strip()
+            if not clean_line or clean_line.startswith("//"):
+                continue
+            try:
+                dataset.append(json.loads(clean_line))
+            except json.JSONDecodeError:
+                continue
 
     if not dataset:
         print(" File data/golden_set.jsonl rỗng. Hãy tạo ít nhất 1 test case.")
@@ -25,7 +35,7 @@ async def run_benchmark_with_results(agent, agent_version: str):
     judge = LLMJudge()
     runner = BenchmarkRunner(agent, evaluator, judge)
     
-    results = await runner.run_all(dataset)
+    results = await runner.run_all(dataset, **kwargs)
     retrieval_metrics = await evaluator.evaluate_batch(results)
     
     total = len(results)

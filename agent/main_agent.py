@@ -4,6 +4,7 @@ import re
 from typing import List, Dict
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
+from langfuse import observe, Langfuse
 
 load_dotenv()
 
@@ -18,6 +19,7 @@ class MainAgent:
         self.model_name = model_name
         self.name = f"SmartBank-Expert-{model_name}"
         self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.langfuse = Langfuse()
         self.kb_path = "data/knowledge_base.txt"
         self._knowledge_base = self._load_kb()
 
@@ -28,7 +30,8 @@ class MainAgent:
         except Exception:
             return "Tài liệu ngân hàng không khả dụng."
 
-    async def query(self, question: str) -> Dict:
+    @observe()
+    async def query(self, question: str, prompt_label: str = "production", prompt_override: str = None) -> Dict:
         """
         Quy trình RAG tối ưu:
         1. Đưa toàn bộ context và câu hỏi cho LLM.

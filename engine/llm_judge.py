@@ -6,42 +6,57 @@ import random
 from typing import List, Dict, Any
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
+from langfuse import observe
+from langfuse import Langfuse
 
 load_dotenv()
 
 class LLMJudge:
     """
     Hệ thống Multi-Judge để chấm điểm câu trả lời của Agent.
-    Sử dụng gpt-4o-mini và gpt-3.5-turbo để thực hiện consensus.
+    Tích hợp Langfuse để Observability và Prompt Management.
     """
     def __init__(self, models: List[str] = ["gpt-4o-mini", "gpt-5-nano"]):
         self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.langfuse = Langfuse()
         self.models = models
         self.judges = [
             {"model": models[0], "temp": 0.0},
             {"model": models[1], "temp": 0.7}
         ]
 
+    @observe()
     async def _get_judge_score(self, model: str, temp: float, question: str, answer: str, ground_truth: str) -> int:
         """
         Gọi API OpenAI để lấy điểm số từ một Judge.
         """
-        prompt = f"""
-        Bạn là một chuyên gia đánh giá chất lượng AI. Hãy chấm điểm câu trả lời của AI dựa trên Ground Truth (Sự thật hiển nhiên).
-        
-        Câu hỏi: {question}
-        Câu trả lời của AI: {answer}
-        Ground Truth: {ground_truth}
-        
-        Tiêu chí chấm điểm:
-        - 5 điểm: Hoàn hảo, đầy đủ ý, chính xác 100%.
-        - 4 điểm: Chính xác nhưng có thể diễn đạt tốt hơn hoặc thiếu một ý nhỏ không quan trọng.
-        - 3 điểm: Đúng ý chính nhưng trình bày sơ sài hoặc thiếu thông tin bổ trợ.
-        - 2 điểm: Có thông tin đúng nhưng nhiều sai sót hoặc mơ hồ.
-        - 1 điểm: Sai hoàn toàn, toxic, hoặc không liên quan.
+        # 1. Lấy Prompt từ Langfuse (Prompt Management)
+        try:
+            langfuse_prompt = self.langfuse.get_prompt("llm_judge_prompt")
+            prompt = langfuse_prompt.compile(
+                question=question, 
+                answer=answer, 
+                ground_truth=ground_truth
+            )
+        except Exception:
+            # Fallback
+            prompt = f"""
+            Bạn là một chuyên gia đánh giá chất lượng AI. Hãy chấm điểm câu trả lời của AI dựa trên Ground Truth (Sự thật hiển nhiên).
+            
+            Câu hỏi: {question}
+            Câu trả lời của AI: {answer}
+            Ground Truth: {ground_truth}
+            
+            Tiêu chí chấm điểm:
+            - 5 điểm: Hoàn hảo, đầy đủ ý, chính xác 100%.
+            - 4 điểm: Chính xác nhưng có thể diễn đạt tốt hơn hoặc thiếu một ý nhỏ không quan trọng.
+            - 3 điểm: Đúng ý chính nhưng trình bày sơ sài hoặc thiếu thông tin bổ trợ.
+            - 2 điểm: Có thông tin đúng nhưng nhiều sai sót hoặc mơ hồ.
+            - 1 điểm: Sai hoàn toàn, toxic, hoặc không liên quan.
 
-        Hãy chỉ trả về duy nhất 1 con số nguyên từ 1 đến 5. Không giải thích gì thêm.
-        """
+            Hãy chỉ trả về duy nhất 1 con số nguyên từ 1 đến 5. Không giải thích gì thêm.
+            """
+        
         try:
             # Các model mới (o1, o3, gpt-5) yêu cầu max_completion_tokens thay vì max_tokens
             is_new_model = any(m in model.lower() for m in ["o1", "o3", "gpt-5"])
@@ -72,6 +87,7 @@ class LLMJudge:
             print(f"Error calling judge {model}: {e}")
             return 3 # Điểm an toàn nếu lỗi
 
+    @observe()
     async def evaluate_multi_judge(self, question: str, answer: str, ground_truth: str) -> Dict[str, Any]:
         """
         EXPERT TASK: Gọi đồng thời nhiều Judge và tính toán sự đồng thuận.
