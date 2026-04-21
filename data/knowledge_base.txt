@@ -30,3 +30,50 @@ Khách hàng có thể liên hệ tổng đài 1900 1234 (hoạt động 24/7).
 - ID tài liệu: DOC_HELP_005
 - Thời gian xử lý khiếu nại giao dịch lỗi: 7-15 ngày làm việc.
 - Trường hợp mất thẻ, khách hàng phải khóa thẻ ngay lập tức trên app hoặc gọi tổng đài.
+
+## 6. Tiết kiệm Trực tuyến (Online Savings)
+Hệ thống cho phép mở sổ tiết kiệm với mệnh giá tối thiểu 1.000.000 VND.
+- ID tài liệu: DOC_SAVE_006
+- Lãi suất kỳ hạn 12 tháng: 6.5%/năm. Lãi suất kỳ hạn 6 tháng: 5.0%/năm.
+- Rút trước hạn: Chỉ được hưởng lãi suất không kỳ hạn là 0.1%/năm cho toàn bộ số tiền rút.
+
+## 7. Xác thực Giao dịch Smart OTP
+Dành cho các giao dịch có giá trị cao hoặc cần tính bảo mật tuyệt đối.
+- ID tài liệu: DOC_SEC_007
+- Hạn mức dưới 10.000.000 VND: Sử dụng SMS OTP.
+- Hạn mức trên 10.000.000 VND hoặc giao dịch quốc tế: Bắt buộc sử dụng Smart OTP khởi tạo trên ứng dụng.
+- Lưu ý: Không được chia sẻ mã kích hoạt Smart OTP cho bất kỳ ai, kể cả nhân viên ngân hàng.
+
+## 8. Giao dịch và Nhận tiền Quốc tế
+Hỗ trợ nhận tiền qua SWIFT và chi tiêu thẻ tại nước ngoài.
+- ID tài liệu: DOC_INT_008
+- Mã SWIFT của SmartBank: SMBK VN VX.
+- Phí chuyển đổi ngoại tệ cho thẻ tín dụng: 2.5% giá trị giao dịch.
+- Thời gian nhận tiền quốc tế: 2-3 ngày làm việc tùy thuộc vào ngân hàng gửi.
+
+## 9. Vay vốn Tiêu dùng và Ô tô
+Cung cấp các gói vay với thủ tục giải ngân nhanh trong 48 giờ.
+- ID tài liệu: DOC_LOAN_009
+- Lãi suất vay mua ô tô: 8.5%/năm trong 12 tháng đầu tiên.
+- Điều kiện: Khách hàng có tài sản đảm bảo hoặc chứng minh thu nhập từ 10.000.000 VND/tháng.
+- Ưu đãi cho nhân viên các tập đoàn đối tác: Giảm thêm 0.5% lãi suất.
+
+## 10. Tiện ích App và Thanh toán Hóa đơn
+Ứng dụng SmartBank Mobile hỗ trợ thanh toán đa nền tảng.
+- ID tài liệu: DOC_APP_010
+- QR Pay: Quét mã VNPAY/Payoo để thanh toán tại hơn 100.000 điểm chấp nhận.
+- Đặt vé: Hỗ trợ đặt vé máy bay, tàu hỏa và rạp chiếu phim tích hợp.
+- Thanh toán hóa đơn: Điện, nước, internet tự động trích nợ hàng tháng.
+
+## 11. Tài khoản Doanh nghiệp (Corporate)
+Dành cho các doanh nghiệp vừa và nhỏ (SME) và tập đoàn lớn.
+- ID tài liệu: DOC_CORP_011
+- Dịch vụ chi lương (Payroll): Miễn phí quản lý tài khoản cho tất cả nhân viên công ty.
+- Giải pháp thu hộ/chi hộ qua API: Tích hợp trực tiếp vào hệ thống ERP của doanh nghiệp.
+
+## 999. [HẾT HIỆU LỰC] Chính sách Phí cũ (2023)
+*Lưu ý: Tài liệu này chỉ dùng để đối chiếu lịch sử.*
+- ID tài liệu: DOC_OLD_999
+- Phí chuyển tiền liên ngân hàng cũ: 5.500 VND/giao dịch.
+- Hạn mức chuyển tiền cũ: 20.000.000 VND/ngày.
+*Quy chuẩn mới (DOC_TRANS_003) đã thay thế hoàn toàn các nội dung này.*

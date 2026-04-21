@@ -1,6 +1,7 @@
 import asyncio
 import time
 from typing import List, Dict
+from langfuse import observe
 
 class BenchmarkRunner:
     def __init__(self, agent, evaluator, judge, concurrency: int = 5):
@@ -10,12 +11,13 @@ class BenchmarkRunner:
         self.semaphore = asyncio.Semaphore(concurrency)
         self.cost_per_1k_tokens = 0.00015 # Giả lập giá gpt-4o-mini
 
-    async def run_single_test(self, test_case: Dict) -> Dict:
+    @observe()
+    async def run_single_test(self, test_case: Dict, **kwargs) -> Dict:
         async with self.semaphore:
             start_time = time.perf_counter()
             
-            # 1. Gọi Agent
-            response = await self.agent.query(test_case["question"])
+            # 1. Gọi Agent với các tham số tùy chỉnh (ví dụ: prompt_label, prompt_override)
+            response = await self.agent.query(test_case["question"], **kwargs)
             latency = time.perf_counter() - start_time
             
             # 2. Chạy Retrieval Eval
@@ -45,14 +47,14 @@ class BenchmarkRunner:
                 "status": "fail" if judge_result["final_score"] < 3 else "pass"
             }
 
-    async def run_all(self, dataset: List[Dict], batch_size: int = 5) -> List[Dict]:
+    async def run_all(self, dataset: List[Dict], batch_size: int = 5, **kwargs) -> List[Dict]:
         """
         Chạy song song bằng asyncio.gather với giới hạn batch_size để không bị Rate Limit.
         """
         results = []
         for i in range(0, len(dataset), batch_size):
             batch = dataset[i:i + batch_size]
-            tasks = [self.run_single_test(case) for case in batch]
+            tasks = [self.run_single_test(case, **kwargs) for case in batch]
             batch_results = await asyncio.gather(*tasks)
             results.extend(batch_results)
         return results

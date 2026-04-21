@@ -3,16 +3,19 @@ import os
 from typing import List, Dict
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
+from langfuse import observe, Langfuse
 
 load_dotenv()
 
 class MainAgent:
     """
     Agent thực hiện RAG bằng cách sử dụng OpenAI API và dữ liệu từ knowledge_base.txt.
+    Tích hợp Langfuse để Observability và Prompt Management.
     """
     def __init__(self):
         self.name = "SmartBank-Expert-Agent"
         self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.langfuse = Langfuse()
         self.kb_path = "data/knowledge_base.txt"
         self._knowledge_base = self._load_kb()
 
@@ -23,21 +26,35 @@ class MainAgent:
         except Exception:
             return "Tài liệu ngân hàng không khả dụng."
 
-    async def query(self, question: str) -> Dict:
+    @observe()
+    async def query(self, question: str, prompt_label: str = "production", prompt_override: str = None) -> Dict:
         """
         Thực hiện quy trình RAG:
         1. Lấy context từ KB.
-        2. Gọi OpenAI để sinh câu trả lời.
-        3. Trả về câu trả lời kèm metadata.
+        2. Lấy prompt từ Langfuse Management (hoặc override).
+        3. Gọi OpenAI để sinh câu trả lời.
         """
-        # Đơn giản hóa: Dùng toàn bộ KB làm context vì kích thước nhỏ
         context = self._knowledge_base
+        
+        system_prompt = None
+        
+        # 1. Ưu tiên prompt_override (dùng cho thử nghiệm nhanh trong code)
+        if prompt_override:
+            system_prompt = prompt_override.replace("{{context}}", context)
+        else:
+            # 2. Lấy Prompt từ Langfuse (Prompt Management) dựa trên Label
+            try:
+                langfuse_prompt = self.langfuse.get_prompt("rag_agent_prompt", label=prompt_label)
+                system_prompt = langfuse_prompt.compile(context=context)
+            except Exception:
+                # Fallback nếu chưa tạo prompt trên Langfuse
+                system_prompt = f"Bạn là chuyên gia tư vấn SmartBank. Hãy trả lời câu hỏi dựa trên tài liệu sau:\n\n{context}"
         
         try:
             response = await self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": f"Bạn là chuyên gia tư vấn SmartBank. Hãy trả lời câu hỏi dựa trên tài liệu sau:\n\n{context}"},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": question}
                 ],
                 temperature=0,
