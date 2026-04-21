@@ -64,14 +64,27 @@ class MainAgent:
             answer = response.choices[0].message.content
             tokens = response.usage.total_tokens
             
-            # Trích xuất source IDs từ câu hỏi/context (giả lập logic retrieval)
-            # Trong thực tế sẽ dùng Vector Search để lấy ID cụ thể
+            # Trích xuất source IDs từ câu hỏi/context (giả lập logic retrieval nâng cao)
+            keywords = {
+                "đăng ký": "DOC_REG_001", "ekyc": "DOC_REG_001", "cccd": "DOC_REG_001", "hộ chiếu": "DOC_REG_001",
+                "mật khẩu": "DOC_SEC_002", "password": "DOC_SEC_002", "quên mật khẩu": "DOC_SEC_002", "khóa tài khoản": "DOC_SEC_002",
+                "chuyển tiền": "DOC_TRANS_003", "hạn mức": "DOC_TRANS_003", "napas": "DOC_TRANS_003", "phí chuyển tiền": "DOC_TRANS_003",
+                "thẻ": "DOC_CARD_004", "platinum": "DOC_CARD_004", "tín dụng": "DOC_CARD_004", "miễn lãi": "DOC_CARD_004",
+                "khiếu nại": "DOC_HELP_005", "tổng đài": "DOC_HELP_005", "mất thẻ": "DOC_HELP_005", "1900 1234": "DOC_HELP_005",
+                "tiết kiệm": "DOC_SAVE_006", "sổ tiết kiệm": "DOC_SAVE_006", "lãi suất": "DOC_SAVE_006", "rút trước hạn": "DOC_SAVE_006",
+                "otp": "DOC_SEC_007", "xác thực": "DOC_SEC_007", "smart otp": "DOC_SEC_007", "sms otp": "DOC_SEC_007",
+                "quốc tế": "DOC_INT_008", "swift": "DOC_INT_008", "ngoại tệ": "DOC_INT_008", "nhận tiền nước ngoài": "DOC_INT_008",
+                "vay": "DOC_LOAN_009", "ô tô": "DOC_LOAN_009", "giải ngân": "DOC_LOAN_009", "vay tiêu dùng": "DOC_LOAN_009",
+                "app": "DOC_APP_010", "thanh toán": "DOC_APP_010", "qr pay": "DOC_APP_010", "hóa đơn": "DOC_APP_010",
+                "doanh nghiệp": "DOC_CORP_011", "sme": "DOC_CORP_011", "payroll": "DOC_CORP_011", "chi lương": "DOC_CORP_011",
+                "phí cũ": "DOC_OLD_999", "2023": "DOC_OLD_999", "hết hiệu lực": "DOC_OLD_999"
+            }
+            
             retrieved = []
-            if "đăng ký" in question.lower(): retrieved.append("DOC_REG_001")
-            if "mật khẩu" in question.lower(): retrieved.append("DOC_SEC_002")
-            if "chuyển tiền" in question.lower(): retrieved.append("DOC_TRANS_003")
-            if "thẻ" in question.lower(): retrieved.append("DOC_CARD_004")
-            if "khiếu nại" in question.lower(): retrieved.append("DOC_HELP_005")
+            q_lower = question.lower()
+            for key, doc_id in keywords.items():
+                if key in q_lower:
+                    retrieved.append(doc_id)
 
             return {
                 "answer": answer,
