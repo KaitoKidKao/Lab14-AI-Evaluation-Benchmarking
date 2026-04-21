@@ -104,31 +104,62 @@ async def main():
     
     agent.langfuse.flush()
     
+    # Lưu kết quả tổng hợp (V1 & V2)
+    os.makedirs("reports", exist_ok=True)
+    
     if v1_summary and v2_summary:
-        print("\n--- REGRESSION ANALYSIS RESULTS ---")
+        # 1. benchmark_results.json chuẩn mẫu (v1 + v2)
+        combined_results = {
+            "v1": v1_results,
+            "v2": v2_results
+        }
+        with open("reports/benchmark_results.json", "w", encoding="utf-8") as f:
+            json.dump(combined_results, f, ensure_ascii=False, indent=2)
+
+        # 2. summary.json chuẩn mẫu (regression analysis)
         score_v1 = v1_summary["metrics"]["avg_score"]
         score_v2 = v2_summary["metrics"]["avg_score"]
+        hit_v1 = v1_summary["metrics"]["hit_rate"]
+        hit_v2 = v2_summary["metrics"]["hit_rate"]
         delta = score_v2 - score_v1
         
-        print(f"V1 Score: {score_v1:.2f}")
-        print(f"V2 Score: {score_v2:.2f}")
-        print(f"Delta: {'+' if delta >= 0 else ''}{delta:.2f}")
-        print(f"Hit Rate: {v2_summary['metrics']['hit_rate']:.2%}")
-        print(f"Agreement Rate: {v2_summary['metrics']['agreement_rate']:.2%}")
-        print(f"Total Cost: ${v2_summary['metrics']['total_cost']:.4f}")
-        
-        # Lưu kết quả để nộp bài
-        os.makedirs("reports", exist_ok=True)
-        with open("reports/summary.json", "w", encoding="utf-8") as f:
-            json.dump(v2_summary, f, ensure_ascii=False, indent=2)
-        with open("reports/benchmark_results.json", "w", encoding="utf-8") as f:
-            json.dump(v2_results, f, ensure_ascii=False, indent=2)
+        # Quyết định APPROVE/BLOCK
+        decision = "APPROVE" if (delta >= 0 and hit_v2 >= 0.8) else "BLOCK"
 
-        # Logic Release Gate
-        if delta >= 0 and v2_summary["metrics"]["hit_rate"] >= 0.8:
-            print("\nDECISION: APPROVE RELEASE")
-        else:
-            print("\nDECISION: BLOCK RELEASE - Reason: Score decreased or Hit Rate too low")
+        final_summary = {
+            "metadata": {
+                "total": v2_summary["metadata"]["total_cases"],
+                "version": "Agent_V2_Optimized",
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "versions_compared": ["V1", "V2"]
+            },
+            "metrics": v2_summary["metrics"],
+            "regression": {
+                "v1": {
+                    "score": score_v1,
+                    "hit_rate": hit_v1,
+                    "judge_agreement": v1_summary["metrics"]["agreement_rate"]
+                },
+                "v2": {
+                    "score": score_v2,
+                    "hit_rate": hit_v2,
+                    "judge_agreement": v2_summary["metrics"]["agreement_rate"]
+                },
+                "decision": decision
+            }
+        }
+        
+        with open("reports/summary.json", "w", encoding="utf-8") as f:
+            json.dump(final_summary, f, ensure_ascii=False, indent=2)
+
+        # In kết quả ra console
+        print("\n" + "="*50)
+        print(f"📊 FINAL REPORT SUMMARY")
+        print("="*50)
+        print(f"V1 Score: {score_v1:.2f} | V2 Score: {score_v2:.2f} ({'+' if delta>=0 else ''}{delta:.2f})")
+        print(f"Hit Rate V2: {hit_v2:.2%} (Target: 80%)")
+        print(f"Decision: {decision}")
+        print("="*50)
             
     print("\nNext step: Run 'python check_lab.py' to verify formatting.")
 

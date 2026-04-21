@@ -27,44 +27,46 @@ class MainAgent:
             return "Tài liệu ngân hàng không khả dụng."
 
     @observe()
-    async def query(self, question: str, prompt_label: str = "production", prompt_override: str = None) -> Dict:
+    async def query(self, question: str = None, messages: List[Dict] = None, prompt_label: str = "production", prompt_override: str = None) -> Dict:
         """
         Thực hiện quy trình RAG:
         1. Lấy context từ KB.
-        2. Lấy prompt từ Langfuse Management (hoặc override).
-        3. Gọi OpenAI để sinh câu trả lời.
+        2. Sinh câu trả lời dựa trên context và câu hỏi/hội thoại.
         """
         context = self._knowledge_base
         
         system_prompt = None
-        
-        # 1. Ưu tiên prompt_override (dùng cho thử nghiệm nhanh trong code)
         if prompt_override:
             system_prompt = prompt_override.replace("{{context}}", context)
         else:
-            # 2. Lấy Prompt từ Langfuse (Prompt Management) dựa trên Label
             try:
                 langfuse_prompt = self.langfuse.get_prompt("rag_agent_prompt", label=prompt_label)
                 system_prompt = langfuse_prompt.compile(context=context)
             except Exception:
-                # Fallback nếu chưa tạo prompt trên Langfuse
                 system_prompt = f"Bạn là chuyên gia tư vấn SmartBank. Hãy trả lời câu hỏi dựa trên tài liệu sau:\n\n{context}"
         
+        # Xử lý input (single-turn vs multi-turn)
+        if messages:
+            chat_messages = [{"role": "system", "content": system_prompt}] + messages
+            last_message_text = messages[-1]["content"] if messages else ""
+        else:
+            chat_messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question}
+            ]
+            last_message_text = question
+
         try:
             response = await self.client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": question}
-                ],
+                messages=chat_messages,
                 temperature=0,
                 max_tokens=300
             )
-            
             answer = response.choices[0].message.content
             tokens = response.usage.total_tokens
             
-            # Trích xuất source IDs từ câu hỏi/context (giả lập logic retrieval nâng cao)
+            # Trích xuất source IDs từ nội dung tin nhắn cuối cùng (Keyword matching mở rộng)
             keywords = {
                 "đăng ký": "DOC_REG_001", "ekyc": "DOC_REG_001", "cccd": "DOC_REG_001", "hộ chiếu": "DOC_REG_001",
                 "mật khẩu": "DOC_SEC_002", "password": "DOC_SEC_002", "quên mật khẩu": "DOC_SEC_002", "khóa tài khoản": "DOC_SEC_002",
@@ -81,18 +83,18 @@ class MainAgent:
             }
             
             retrieved = []
-            q_lower = question.lower()
+            text_to_check = last_message_text.lower() if last_message_text else ""
             for key, doc_id in keywords.items():
-                if key in q_lower:
+                if key in text_to_check:
                     retrieved.append(doc_id)
 
             return {
                 "answer": answer,
-                "contexts": [context[:200] + "..."], # Chỉ trả về một đoạn context demo
+                "contexts": [context[:200] + "..."],
                 "metadata": {
                     "model": "gpt-4o-mini",
                     "tokens_used": tokens,
-                    "sources": retrieved if retrieved else ["DOC_GENERAL"]
+                    "sources": list(set(retrieved))
                 }
             }
         except Exception as e:
