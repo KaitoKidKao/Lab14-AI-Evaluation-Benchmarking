@@ -2,46 +2,62 @@ import json
 import os
 
 def validate_lab():
-    print("Checking submission format...")
-    
+    print("🔍 Đang kiểm tra định dạng bài nộp...")
+
     required_files = [
         "reports/summary.json",
         "reports/benchmark_results.json",
         "analysis/failure_analysis.md"
     ]
-    
-    # 1. Check file existence
+
+    # 1. Kiểm tra sự tồn tại của tất cả file
+    missing = []
     for f in required_files:
         if os.path.exists(f):
-            print(f"Passed: Found {f}")
+            print(f"✅ Tìm thấy: {f}")
         else:
-            print(f"Failed: Missing file {f}")
-            return
+            print(f"❌ Thiếu file: {f}")
+            missing.append(f)
 
-    # 2. Check summary.json content
-    with open("reports/summary.json", "r") as f:
-        data = json.load(f)
-        
-        metrics = data["metrics"]
-        
-        print(f"\n--- Quick Stats ---")
-        total_key = "total_cases" if "total_cases" in data["metadata"] else "total"
-        print(f"Total cases: {data['metadata'][total_key]}")
-        print(f"Average Score: {metrics['avg_score']:.2f}")
-        
-        # EXPERT CHECKS
-        has_retrieval = "hit_rate" in metrics
-        has_multi_judge = "agreement_rate" in metrics or "avg_score" in metrics
-        
-        if has_retrieval:
-            print(f"Passed: Retrieval Metrics found (Hit Rate: {metrics['hit_rate']*100:.1f}%)")
-        else:
-            print(f"Warning: Missing Retrieval Metrics.")
+    if missing:
+        print(f"\n❌ Thiếu {len(missing)} file. Hãy bổ sung trước khi nộp bài.")
+        return
 
-        if data["metadata"].get("version"):
-            print(f"Passed: Agent Version info found (Regression Mode)")
+    # 2. Kiểm tra nội dung summary.json
+    try:
+        with open("reports/summary.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"❌ File reports/summary.json không phải JSON hợp lệ: {e}")
+        return
 
-    print("\nResult: Lab is ready for grading!")
+    if "metrics" not in data or "metadata" not in data:
+        print("❌ File summary.json thiếu trường 'metrics' hoặc 'metadata'.")
+        return
+
+    metrics = data["metrics"]
+
+    print(f"\n--- Thống kê nhanh ---")
+    print(f"Tổng số cases: {data['metadata'].get('total', 'N/A')}")
+    print(f"Điểm trung bình: {metrics.get('avg_score', 0):.2f}")
+
+    # EXPERT CHECKS
+    has_retrieval = "hit_rate" in metrics
+    if has_retrieval:
+        print(f"✅ Đã tìm thấy Retrieval Metrics (Hit Rate: {metrics['hit_rate']*100:.1f}%)")
+    else:
+        print(f"⚠️ CẢNH BÁO: Thiếu Retrieval Metrics (hit_rate).")
+
+    has_multi_judge = "agreement_rate" in metrics
+    if has_multi_judge:
+        print(f"✅ Đã tìm thấy Multi-Judge Metrics (Agreement Rate: {metrics['agreement_rate']*100:.1f}%)")
+    else:
+        print(f"⚠️ CẢNH BÁO: Thiếu Multi-Judge Metrics (agreement_rate).")
+
+    if data["metadata"].get("version"):
+        print(f"✅ Đã tìm thấy thông tin phiên bản Agent (Regression Mode)")
+
+    print("\n🚀 Bài lab đã sẵn sàng để chấm điểm!")
 
 if __name__ == "__main__":
     validate_lab()
