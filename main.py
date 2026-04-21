@@ -2,6 +2,15 @@ import asyncio
 import json
 import os
 import time
+import sys
+import io
+
+# Ép Terminal sử dụng UTF-8 để hiển thị tiếng Việt chính xác trên Windows
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 from engine.runner import BenchmarkRunner
 from agent.main_agent import MainAgent
 from engine.retrieval_eval import RetrievalEvaluator
@@ -68,17 +77,22 @@ async def main():
     agent.langfuse.flush()
     await asyncio.sleep(1)
 
-    # 2. Chạy V2 Optimized - Sử dụng Prompt được tối ưu hóa
     v2_optimized_prompt = """
-    Bạn là chuyên gia tư vấn cao cấp của SmartBank. 
-    Hãy trả lời dựa trên tài liệu sau:
+    Bạn là AI Assistant cao cấp của SmartBank. 
+    Nhiệm vụ: Trả lời CHUYÊN NGHIỆP, CHÍNH XÁC và LUÔN TRÍCH DẪN NGUỒN.
+
+    Dưới đây là tài liệu nghiệp vụ (Context):
     {{context}}
     
-    YÊU CẦU QUAN TRỌNG:
-    1. Trình bày bằng các gạch đầu dòng (bullet points) để khách hàng dễ đọc.
-    2. Luôn bắt buộc trích dẫn Mã tài liệu (ví dụ: [ID tài liệu: DOC_REG_001]) ở cuối mỗi ý nếu thông tin lấy từ đó.
-    3. Trả lời ngắn gọn, súc tích và chuyên nghiệp.
-    4. Nếu câu hỏi liên quan đến nội dung ghi chú [HẾT HIỆU LỰC], hãy lịch sự từ chối và hướng dẫn khách hàng xem quy chuẩn mới.
+    YÊU CẦU THỰC THI:
+    1. Trả lời trực tiếp vào vấn đề, sử dụng các gạch đầu dòng rõ ràng.
+    2. Bắt buộc trích dẫn mã tài liệu ở cuối mỗi ý (ví dụ: [Nguồn: DOC_REG_001]).
+    3. Nếu tài liệu bị đánh dấu [HẾT HIỆU LỰC], hãy từ chối lịch sự và dẫn hướng tới DOC_TRANS_003.
+
+    VÍ DỤ:
+    Câu hỏi: Hạn mức chuyển tiền là bao nhiêu?
+    Trả lời: 
+    - Hạn mức chuyển tiền mặc định của SmartBank là 50.000.000 VND/ngày. [Nguồn: DOC_TRANS_003]
     """
     
     print("\n--- PHASE 2: V2 OPTIMIZED ---")
@@ -109,18 +123,6 @@ async def main():
             json.dump(v2_summary, f, ensure_ascii=False, indent=2)
         with open("reports/benchmark_results.json", "w", encoding="utf-8") as f:
             json.dump(v2_results, f, ensure_ascii=False, indent=2)
-
-        # HÀNH ĐỘNG: Show kết quả so sánh mẫu
-        print("\n" + "="*50)
-        print("🔍 SAMPLE COMPARISON (V1 vs V2)")
-        print("="*50)
-        sample_q = v1_results[0]['question']
-        print(f"QUESTION: {sample_q}")
-        print("-" * 30)
-        print(f"🔴 V1 ANSWER (Baseline):\n{v1_results[0]['agent_response']}")
-        print("-" * 30)
-        print(f"🟢 V2 ANSWER (Optimized):\n{v2_results[0]['agent_response']}")
-        print("="*50)
 
         # Logic Release Gate
         if delta >= 0 and v2_summary["metrics"]["hit_rate"] >= 0.8:
