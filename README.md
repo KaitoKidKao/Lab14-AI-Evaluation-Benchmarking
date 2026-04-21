@@ -56,26 +56,50 @@ Báo cáo 5 Whys phải chỉ ra được lỗi nằm ở đâu: Ingestion pipel
 
 ## 🔧 Hướng dẫn chạy
 
+### 1. Thiết lập môi trường
+Khuyến khích sử dụng môi trường ảo (virtual environment) để đảm bảo tính ổn định:
 ```bash
-# 1. Cài đặt dependencies
+# Tạo môi trường ảo
+python -m venv venv
+
+# Kích hoạt môi trường (Windows)
+.\venv\Scripts\activate
+
+# Cài đặt thư viện
 pip install -r requirements.txt
+```
 
-# 2. Tạo Golden Dataset (chạy trước khi benchmark)
-python data/synthetic_gen.py
+### 2. Cấu hình biến môi trường
+Tạo file `.env` tại thư mục gốc và cấu hình các thông tin sau:
+```env
+OPENAI_API_KEY=your_openai_key
+LANGFUSE_PUBLIC_KEY=your_public_key
+LANGFUSE_SECRET_KEY=your_secret_key
+LANGFUSE_HOST=https://cloud.langfuse.com
+```
 
-# 3. Chạy Benchmark & tạo reports
+### 3. Chạy Benchmark
+Hệ thống hiện tại đã tích hợp sẵn bộ **Golden Set 65 cases** (bao gồm cả Adversarial và Multi-turn) để đánh giá mức độ chuyên gia.
+```bash
+# Chạy bộ benchmark chính thức (65 kịch bản)
 python main.py
+```
 
-# 4. Kiểm tra định dạng trước khi nộp
+### 4. Kiểm tra và Dọn dẹp
+```bash
+# Kiểm tra định dạng bài nộp (phải đạt ✅ 100% trước khi nộp)
 python check_lab.py
+
+# (Tùy chọn) Xóa dữ liệu rác trên Langfuse sau khi test
+python scripts/cleanup_langfuse.py
 ```
 
 ---
 
 ## ⚠️ Lưu ý quan trọng
-- **Bắt buộc** chạy `python data/synthetic_gen.py` trước để tạo file `data/golden_set.jsonl`. File này không được commit sẵn trong repo.
-- Trước khi nộp bài, hãy chạy `python check_lab.py` để đảm bảo định dạng dữ liệu đã chuẩn. Bất kỳ lỗi định dạng nào dẫn đến việc script chấm điểm tự động không chạy được sẽ bị trừ 5 điểm thủ tục.
-- File `.env` chứa API Key **KHÔNG** được push lên GitHub.
+- **Windows UTF-8**: Hệ thống đã được cấu hình để hiển thị font tiếng Việt chuẩn trên Windows Terminal. Nếu gặp lỗi font, hãy đảm bảo terminal của bạn hỗ trợ UTF-8 (chạy lệnh `chcp 65001` nếu cần).
+- **Lỗi Socket vô hại**: Trên Windows, khi kết thúc benchmark có thể xuất hiện thông báo `AttributeError: '_ProactorSocketTransport'...`. Đây là lỗi nội bộ của Python khi giải phóng tài nguyên hệ thống, **không ảnh hưởng** đến kết quả benchmark và tính chính xác của dữ liệu.
+- **Dataset**: File `data/golden_set.jsonl` hiện đã chứa 65 kịch bản stress-test cao cấp. Nếu bạn muốn tạo lại bộ dữ liệu mới, hãy chạy `python data/synthetic_gen.py`.
+- **An toàn bảo mật**: Tuyệt đối không commit file `.env` lên GitHub/GitLab.
 
 ---
-*Chúc nhóm bạn xây dựng được một Evaluation Factory thực sự mạnh mẽ!*
