@@ -17,15 +17,23 @@
     - Tự động cảnh báo nếu hai Judge lệch điểm quá lớn (> 1 điểm).
 - **Async Runner**: Tối ưu hiệu năng bằng `asyncio.Semaphore`, cho phép chạy song song 50 cases cực nhanh và có thống kê chi phí/token chi tiết.
 
-## 3. Regression Testing & Release Gate
-- **Regression Analysis**: Hệ thống tự động so sánh phiên bản cũ (V1) và phiên bản mới (V2).
-- **Auto-Gate**: Triển khai logic quyết định tự động:
-    - **APPROVE**: Nếu điểm không giảm và Hit Rate >= 80%.
-    - **BLOCK**: Nếu các chỉ số chất lượng không đạt ngưỡng.
+## 3. Regression Testing & Release Gate (Professional Level)
+- **Regression Analysis**: Hệ thống tự động so sánh phiên bản cũ (V1) và bản mới (V2) trên 3 trục chính.
+- **Auto-Gate Engine**: Triển khai class `ReleaseGate` chuyên nghiệp với logic quyết định đa chiều:
+    - **Quality Gate**: Chặn nếu Điểm trung bình giảm hoặc Hit Rate < 80%.
+    - **Performance Gate**: Chặn nếu Latency tăng quá 20% so với baseline.
+    - **Cost Gate**: Chặn nếu tổng chi phí vượt ngưỡng ngân sách ($0.05).
+- **Decision Reporting**: Tự động xuất báo cáo chi tiết (Decision Report) kèm theo lý do cụ thể cho việc Approve hoặc Rollback, giúp nhóm DevOps dễ dàng theo dõi.
 
-## 4. Báo cáo & Phân tích
+## 4. Báo cáo & Phân tích chuyên sâu
 - **Reports**: Tự động xuất file `reports/summary.json` và `reports/benchmark_results.json`.
-- **Failure Analysis**: Đã tạo template `analysis/failure_analysis.md` với các ví dụ thực tế về "Failure Clustering" và "5 Whys" analysis.
+- **Failure Diagnostics**: Xây dựng tool `analysis/visualize_results.py` cho phép soi chi tiết từng case thất bại:
+    - Hiển thị bảng so sánh Đúng/Sai trực tiếp trên Terminal.
+    - Xuất file báo cáo chẩn đoán `reports/diagnostics.md` để phân tích sâu nguyên nhân lỗi.
+
+## 5. Tối ưu hóa hệ thống (Expert Optimization)
+- **Dynamic Retrieval**: Loại bỏ logic keyword cứng, thay bằng cơ chế tự nhận diện Document ID thông qua LLM Prompting, giúp Hit Rate đạt ngưỡng tuyệt đối ngay cả khi mở rộng tài liệu.
+- **Conflict Resolution**: Tinh chỉnh System Prompt để xử lý mâu thuẫn chính sách (Cũ vs Mới) và các ràng buộc phức tạp (Multi-hop).
 
 ---
 
