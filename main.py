@@ -18,7 +18,7 @@ async def run_benchmark_with_results(agent, agent_version: str):
         dataset = [json.loads(line) for line in f]
 
     if not dataset:
-        print("❌ File data/golden_set.jsonl rỗng. Hãy tạo ít nhất 1 test case.")
+        print(" File data/golden_set.jsonl rỗng. Hãy tạo ít nhất 1 test case.")
         return None, None
 
     evaluator = RetrievalEvaluator()
@@ -48,41 +48,43 @@ async def run_benchmark_with_results(agent, agent_version: str):
     return results, summary
 
 async def main():
-    agent = MainAgent()
+    # 1. Chạy V1 Baseline (gpt-4o-mini)
+    print("--- PHASE 1: V1 BASELINE (gpt-4o-mini) ---")
+    agent_v1 = MainAgent(model_name="gpt-4o-mini")
+    v1_results, v1_summary = await run_benchmark_with_results(agent_v1, "V1-Baseline")
     
-    # 1. Chạy V1 Baseline (Mô phỏng bằng cách chạy lần đầu)
-    print("--- PHASE 1: V1 BASELINE ---")
-    v1_results, v1_summary = await run_benchmark_with_results(agent, "Agent_V1_Base")
-    
-    # 2. Chạy V2 Optimized (Trong lab này chúng ta dùng cùng agent nhưng mô phỏng sự khác biệt)
-    print("\n--- PHASE 2: V2 OPTIMIZED ---")
-    v2_results, v2_summary = await run_benchmark_with_results(agent, "Agent_V2_Optimized")
+    # 2. Chạy V2 Optimized (Bạn có thể đổi sang model khác như gpt-4o ở đây)
+    print("\n--- PHASE 2: V2 OPTIMIZED (gpt-4o-mini) ---")
+    agent_v2 = MainAgent(model_name="gpt-4o-mini")
+    v2_results, v2_summary = await run_benchmark_with_results(agent_v2, "V2-Optimized")
     
     if v1_summary and v2_summary:
-        print("\n--- REGRESSION ANALYSIS RESULTS ---")
-        score_v1 = v1_summary["metrics"]["avg_score"]
-        score_v2 = v2_summary["metrics"]["avg_score"]
-        delta = score_v2 - score_v1
+        from engine.release_gate import ReleaseGate
         
-        print(f"V1 Score: {score_v1:.2f}")
-        print(f"V2 Score: {score_v2:.2f}")
-        print(f"Delta: {'+' if delta >= 0 else ''}{delta:.2f}")
-        print(f"Hit Rate: {v2_summary['metrics']['hit_rate']:.2%}")
-        print(f"Agreement Rate: {v2_summary['metrics']['agreement_rate']:.2%}")
-        print(f"Total Cost: ${v2_summary['metrics']['total_cost']:.4f}")
+        print("\n--- REGRESSION ANALYSIS & AUTO-GATE ---")
+        
+        # Khởi tạo Gate với các ngưỡng cấu hình
+        gate = ReleaseGate(
+            min_hit_rate=0.8,
+            max_latency_increase=0.2,
+            max_cost=0.05
+        )
+        
+        # Thực hiện đánh giá
+        is_approved, gate_report = gate.evaluate_gate(v1_summary, v2_summary)
+        
+        # In báo cáo chi tiết
+        print(gate_report)
         
         # Lưu kết quả để nộp bài
         os.makedirs("reports", exist_ok=True)
         with open("reports/summary.json", "w", encoding="utf-8") as f:
+            # Bổ sung trạng thái release vào summary
+            v2_summary["release_decision"] = "APPROVED" if is_approved else "BLOCKED"
             json.dump(v2_summary, f, ensure_ascii=False, indent=2)
+        
         with open("reports/benchmark_results.json", "w", encoding="utf-8") as f:
             json.dump(v2_results, f, ensure_ascii=False, indent=2)
-
-        # Logic Release Gate
-        if delta >= 0 and v2_summary["metrics"]["hit_rate"] >= 0.8:
-            print("\nDECISION: APPROVE RELEASE")
-        else:
-            print("\nDECISION: BLOCK RELEASE - Reason: Score decreased or Hit Rate too low")
             
     print("\nNext step: Run 'python check_lab.py' to verify formatting.")
 

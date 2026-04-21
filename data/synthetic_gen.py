@@ -97,11 +97,24 @@ async def main():
     gen = SyntheticGenerator("data/knowledge_base.txt")
     qa_pairs = await gen.generate_50_cases()
     
+    # Tích hợp bộ Expert Cases
+    try:
+        try:
+            from data.hard_dataset_gen import generate_expert_cases
+        except ImportError:
+            from hard_dataset_gen import generate_expert_cases
+            
+        expert_cases = generate_expert_cases()
+        qa_pairs.extend(expert_cases)
+        print(f"Added {len(expert_cases)} expert cases to the dataset.")
+    except Exception as e:
+        print(f"Warning: Could not import hard_dataset_gen. Reason: {e}. Skipping expert cases.")
+
     os.makedirs("data", exist_ok=True)
     with open("data/golden_set.jsonl", "w", encoding="utf-8") as f:
         for pair in qa_pairs:
             f.write(json.dumps(pair, ensure_ascii=False) + "\n")
-    print(f"Success! Generated {len(qa_pairs)} test cases and saved to data/golden_set.jsonl")
+    print(f"Success! Total {len(qa_pairs)} test cases saved to data/golden_set.jsonl")
 
 if __name__ == "__main__":
     asyncio.run(main())
