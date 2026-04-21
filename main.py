@@ -17,6 +17,10 @@ async def run_benchmark_with_results(agent, agent_version: str):
     with open("data/golden_set.jsonl", "r", encoding="utf-8") as f:
         dataset = [json.loads(line) for line in f]
 
+    if not dataset:
+        print("❌ File data/golden_set.jsonl rỗng. Hãy tạo ít nhất 1 test case.")
+        return None, None
+
     evaluator = RetrievalEvaluator()
     judge = LLMJudge()
     runner = BenchmarkRunner(agent, evaluator, judge)
@@ -24,18 +28,20 @@ async def run_benchmark_with_results(agent, agent_version: str):
     results = await runner.run_all(dataset)
     retrieval_metrics = await evaluator.evaluate_batch(results)
     
+    total = len(results)
+
     summary = {
         "metadata": {
             "version": agent_version, 
-            "total_cases": len(results), 
+            "total_cases": total, 
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
         },
         "metrics": {
-            "avg_score": sum(r["judge"]["final_score"] for r in results) / len(results),
+            "avg_score": sum(r["judge"]["final_score"] for r in results) / total,
             "hit_rate": retrieval_metrics["avg_hit_rate"],
             "mrr": retrieval_metrics["avg_mrr"],
-            "agreement_rate": sum(r["judge"]["agreement_rate"] for r in results) / len(results),
-            "avg_latency": sum(r["latency"] for r in results) / len(results),
+            "agreement_rate": sum(r["judge"]["agreement_rate"] for r in results) / total,
+            "avg_latency": sum(r["latency"] for r in results) / total,
             "total_cost": sum(r["cost"] for r in results)
         }
     }
